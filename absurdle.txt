@@ -1,0 +1,195 @@
+/*
+Cole Randall
+03/4/2025
+CSE 122
+TA: Mihn Vu
+P2: absurdle
+This class is a game of absurdle where the user attempts to guess the correct word by
+narrowing down possible words to one
+*/
+
+import java.util.*;
+import java.io.*;
+
+public class Absurdle  {
+    public static final String GREEN = "🟩";
+    public static final String YELLOW = "🟨";
+    public static final String GRAY = "⬜";
+
+    // [[ ALL OF MAIN PROVIDED ]]
+    public static void main(String[] args) throws FileNotFoundException {
+        Scanner console = new Scanner(System.in);
+        System.out.println("Welcome to the game of Absurdle.");
+
+        System.out.print("What dictionary would you like to use? ");
+        String dictName = console.next();
+
+        System.out.print("What length word would you like to guess? ");
+        int wordLength = console.nextInt();
+
+        List<String> contents = loadFile(new Scanner(new File(dictName)));
+        Set<String> words = pruneDictionary(contents, wordLength);
+
+        List<String> guessedPatterns = new ArrayList<>();
+        while (!isFinished(guessedPatterns)) {
+            System.out.print("> ");
+            String guess = console.next();
+            String pattern = recordGuess(guess, words, wordLength);
+            guessedPatterns.add(pattern);
+            System.out.println(": " + pattern);
+            System.out.println();
+        }
+        System.out.println("Absurdle " + guessedPatterns.size() + "/∞");
+        System.out.println();
+        printPatterns(guessedPatterns);
+    }
+
+    // [[ PROVIDED ]]
+    // Prints out the given list of patterns.
+    // - List<String> patterns: list of patterns from the game
+    public static void printPatterns(List<String> patterns) {
+        for (String pattern : patterns) {
+            System.out.println(pattern);
+        }
+    }
+
+    // [[ PROVIDED ]]
+    // Returns true if the game is finished, meaning the user guessed the word. Returns
+    // false otherwise.
+    // - List<String> patterns: list of patterns from the game
+    public static boolean isFinished(List<String> patterns) {
+        if (patterns.isEmpty()) {
+            return false;
+        }
+        String lastPattern = patterns.get(patterns.size() - 1);
+        return !lastPattern.contains("⬜") && !lastPattern.contains("🟨");
+    }
+
+    // [[ PROVIDED ]]
+    // Loads the contents of a given file Scanner into a List<String> and returns it.
+    // - Scanner dictScan: contains file contents
+    public static List<String> loadFile(Scanner dictScan) {
+        List<String> contents = new ArrayList<>();
+        while (dictScan.hasNext()) {
+            contents.add(dictScan.next());
+        }
+        return contents;
+    }
+
+
+    /*
+    Behavior: adds all words with the correct wordlength in a dictionary to a set
+    Exceptions: throws an IllegalArgumentException if the word length is less than 1
+    Parameters: contents- a list of all words in a dictionary
+                wordLength- the length of the words to be added to the return list
+    Returns: returns a set of all words with the proper word length in the dictionary
+    */
+    public static Set<String> pruneDictionary(List<String> contents, int wordLength) {
+        if(wordLength < 1){
+            throw new IllegalArgumentException();
+        }
+        Set<String> words = new TreeSet<>();
+        for(int i = 0; i < contents.size(); i++){
+            if(contents.get(i).length() == wordLength){
+                words.add(contents.get(i));
+            }
+        }
+        return words;
+    }
+
+    /*
+    Behavior: this method finds and returns the pattern with the most possible words and
+              updates the dictionary with the words for that pattern
+    Exceptions: throws an IllegalArgumentException if the guess is not the same length as the
+                word length or if there are no words in the dictionary
+    Parameters: guess- a String holding the users guess
+                words- a set of words holding all words in the dictionary
+                wordLength- an int holding the length of the word that is to be guessed
+    Returns: a String holding the pattern that was chosen for the guess
+    */
+    public static String recordGuess(String guess, Set<String> words, int wordLength) {
+        if(guess.length() != wordLength || words.isEmpty()){
+            throw new IllegalArgumentException();
+        }
+        for(String word : words){
+            if(word.length() != wordLength){
+                words.remove(word);
+            }
+        }
+        Map<String, Set<String>> possible = new TreeMap<>();
+        for(String word : words){
+            String pattern = patternFor(word, guess);
+            if(possible.containsKey(pattern)){
+                possible.get(pattern).add(word);
+            }
+            else{
+                Set<String> newWord = new TreeSet<>();
+                newWord.add(word);
+                possible.put(pattern, newWord);
+            }
+        }
+        String chosen = "";
+        int max = 0;
+        for(String pattern : possible.keySet()){
+            if(possible.get(pattern).size() > max){
+                max = possible.get(pattern).size();
+                chosen = pattern;
+            }
+        }
+        words.clear();
+        words.addAll(possible.get(chosen));
+        return chosen;
+    }
+
+
+    /*
+    Behavior: gives the pattern for a guess and a correct word
+    Exceptions: n/a
+    Parameters: word- the correct word that the guess will be patterned against
+                guess- the guess that needs a pattern
+    Returns: returns a String pattern for the word and guess
+    */
+    public static String patternFor(String word, String guess) {
+        Map<Integer, String> wordMap = new TreeMap<>();
+        List<String> colors = new ArrayList<>();
+        for(int i = 0; i < word.length(); i++){
+            wordMap.put(i, word.substring(i, i+1));
+            colors.add(GRAY);
+        }
+        for(int i = 0; i < word.length(); i++){
+            if(wordMap.get(i).equalsIgnoreCase(guess.substring(i, i+1))){
+                colors.set(i, GREEN);
+                wordMap.put(i, "USED");
+            }
+        }
+        for(int i = 0; i < word.length(); i++){
+            if(wordMap.values().contains(guess.substring(i,i+1)) && !colors.get(i).equals(GREEN)){
+                colors.set(i, YELLOW);
+                setUsed(wordMap, guess.substring(i, i+1));
+            }
+        }
+        String pattern = "";
+        for(String color : colors){
+            pattern += color;
+        }
+        return pattern;
+    }
+
+    /*
+    Behavior: replaces one letter in the wordMap with the word USED to remove it from
+              further consideration in the pattern
+    Exceptions: n/a
+    Parameters: wordMap- the Map of Integer and String that needs to have a letter marked as USED
+                letter- a String of the letter that needs to be replaced with USED
+    Returns: n/a
+    */
+    public static void setUsed(Map<Integer, String> wordMap, String letter){
+        boolean flag = false;
+        for(int index : wordMap.keySet()){
+            if(wordMap.get(index).equalsIgnoreCase(letter) && !flag){
+                wordMap.put(index, "USED");
+                flag = true;
+            }
+        }
+    }
+}
