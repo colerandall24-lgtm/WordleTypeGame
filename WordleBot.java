@@ -2,7 +2,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 public class WordleBot {
-    private List<String> possibleWords;
+    protected List<String> possibleWords;
     private Wordle wordle;
     public static int[] lastPattern;
     public static String lastGuess;
@@ -30,9 +30,29 @@ public class WordleBot {
      * pick the best word
      */
     public String generateWord(int[] pattern, String guess) {
+
         if(counter == 0){
             counter++;
-            return pickBestWord();
+            List<String> topWords = new ArrayList();
+            topWords.add("arose");
+            topWords.add("raise");
+            topWords.add("arise");
+            topWords.add("tears");
+            topWords.add("rates");
+            topWords.add("stare");
+            topWords.add("aster");
+            topWords.add("tares");
+            topWords.add("laser");
+            topWords.add("earls");
+            topWords.add("reals");
+            topWords.add("stoae");
+            topWords.add("aloes");
+            topWords.add("snare");
+            topWords.add("earns");
+            int random = (int)(Math.random()*topWords.size());
+            String word = topWords.get(random);
+            return word;
+            //return pickBestWord();
         }
         Set<Character> forbiddenSet = new HashSet<>();
         List<String> yellowList = new ArrayList<>(Collections.nCopies(guess.length(), " "));
